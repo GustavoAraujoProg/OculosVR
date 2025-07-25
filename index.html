@@ -1628,7 +1628,7 @@
                 try {
                     // HOTSPOT MENOR E MAIS PRECISO
                     const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
-                    const hotspotSize = isMobile ? 10 : 8; // 15 no mobile, 8 no desktop
+                    const hotspotSize = isMobile ? 13 : 8; // 15 no mobile, 8 no desktop
                     const geometry = new THREE.SphereGeometry(hotspotSize, 8, 8);
                     const material = new THREE.MeshBasicMaterial({ 
                         color: 0x808080,
@@ -1641,7 +1641,7 @@
                     this.scene.add(marker);
                     
                     // ANEL MENOR E MAIS SUTIL
-                    const ringSize = isMobile ? 20 : 9; // 20 no mobile, 9 no desktop
+                    const ringSize = isMobile ? 13 : 9; // 20 no mobile, 9 no desktop
                     const ringGeometry = new THREE.RingGeometry(hotspotSize - 2, ringSize, 12);
                     const ringMaterial = new THREE.MeshBasicMaterial({ 
                         color: 0xffffff,
