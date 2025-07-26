@@ -1946,18 +1946,103 @@
             }
             
             checkDeviceSupport() {
-                // VR SEMPRE DISPONÍVEL EM DESKTOP E MOBILE
-                console.log("🥽 VR disponível para DESKTOP e MOBILE");
-                if (this.vrButton) {
-                    this.vrButton.style.display = 'flex';
-                    this.vrButton.style.visibility = 'visible';
-                    this.vrButton.style.opacity = '1';
-                    this.vrButton.style.pointerEvents = 'auto';
-                    console.log("✅ Botão VR exibido e ativo para DESKTOP E MOBILE");
-                } else {
-                    console.error("❌ Botão VR não encontrado!");
-                }
-            }
+    console.log("🥽 VR disponível para DESKTOP e MOBILE");
+    
+    // GARANTIR QUE O BOTÃO EXISTE NO DOM
+    this.ensureVRButtonExists();
+    
+    // AGUARDAR E CONFIGURAR
+    setTimeout(() => {
+        this.setupVRButton();
+    }, 500);
+}
+
+ensureVRButtonExists() {
+    let vrButton = document.getElementById('vrButton');
+    
+    if (!vrButton) {
+        console.log("⚠️ Botão VR não existe! Criando...");
+        
+        // CRIAR O BOTÃO VR SE NÃO EXISTIR
+        vrButton = document.createElement('div');
+        vrButton.id = 'vrButton';
+        vrButton.className = 'vr-button';
+        vrButton.title = 'Modo VR';
+        vrButton.innerHTML = `
+            <svg class="vr-icon" viewBox="0 0 24 24">
+                <path d="M20.84,4.22C20.5,4.08 20.15,4 19.8,4H4.2C3.85,4 3.5,4.08 3.16,4.22C2.44,4.53 2,5.25 2,6V18C2,18.75 2.44,19.47 3.16,19.78C3.5,19.92 3.85,20 4.2,20H19.8C20.15,20 20.5,19.92 20.84,19.78C21.56,19.47 22,18.75 22,18V6C22,5.25 21.56,4.53 20.84,4.22M12,6.5C13.38,6.5 14.5,7.62 14.5,9C14.5,10.38 13.38,11.5 12,11.5C10.62,11.5 9.5,10.38 9.5,9C9.5,7.62 10.62,6.5 12,6.5M7,6.5C8.38,6.5 9.5,7.62 9.5,9C9.5,10.38 8.38,11.5 7,11.5C5.62,11.5 4.5,10.38 4.5,9C4.5,7.62 5.62,6.5 7,6.5M17,6.5C18.38,6.5 19.5,7.62 19.5,9C19.5,10.38 18.38,11.5 17,11.5C15.62,11.5 14.5,10.38 14.5,9C14.5,7.62 15.62,6.5 17,6.5Z"/>
+            </svg>
+        `;
+        
+        // ADICIONAR AO BODY
+        document.body.appendChild(vrButton);
+        console.log("✅ Botão VR criado!");
+    }
+    
+    this.vrButton = vrButton;
+    return vrButton;
+}
+
+setupVRButton() {
+    const vrButton = document.getElementById('vrButton');
+    
+    if (!vrButton) {
+        console.error("❌ Botão VR ainda não existe!");
+        return;
+    }
+    
+    console.log("✅ Configurando botão VR...");
+    
+    // GARANTIR ESTILOS
+    vrButton.style.position = 'fixed';
+    vrButton.style.bottom = '30px';
+    vrButton.style.right = '30px';
+    vrButton.style.width = '70px';
+    vrButton.style.height = '70px';
+    vrButton.style.background = 'linear-gradient(145deg, #c7c7c7, #000000)';
+    vrButton.style.border = 'none';
+    vrButton.style.borderRadius = '20px';
+    vrButton.style.cursor = 'pointer';
+    vrButton.style.display = 'flex';
+    vrButton.style.alignItems = 'center';
+    vrButton.style.justifyContent = 'center';
+    vrButton.style.zIndex = '9999';
+    vrButton.style.opacity = '1';
+    vrButton.style.visibility = 'visible';
+    vrButton.style.pointerEvents = 'auto';
+    
+    // LIMPAR EVENTOS EXISTENTES
+    const newVRButton = vrButton.cloneNode(true);
+    vrButton.parentNode.replaceChild(newVRButton, vrButton);
+    
+    // EVENTO PRINCIPAL
+    newVRButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("🥽 Botão VR clicado!");
+        this.showVRSelection();
+    });
+    
+    // EVENTOS TOUCH
+    newVRButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("📱 Botão VR tocado!");
+        this.showVRSelection();
+    });
+    
+    console.log("✅ Botão VR configurado e funcionando!");
+    
+    // TESTE IMEDIATO
+    setTimeout(() => {
+        const testButton = document.getElementById('vrButton');
+        console.log("🧪 Teste final:", {
+            existe: !!testButton,
+            visivel: testButton ? testButton.style.display : 'N/A',
+            clicavel: testButton ? testButton.style.pointerEvents : 'N/A'
+        });
+    }, 100);
+}
             
             showVRSelection() {
                 console.log("🥽 Abrindo seleção VR...");
@@ -2867,6 +2952,16 @@ clearGaze() {
             window.hotspotSystem = hotspotSystem;
             window.raycaster = raycaster;
             window.mouse = mouse;
+
+            // GARANTIR BOTÃO VR APÓS TUDO CARREGAR
+            setTimeout(() => {
+                if (vrSystem) {
+                    vrSystem.checkDeviceSupport();
+                    console.log("🔄 VR reconfigurado após init");
+                }
+            }, 1000);
+
+        
                     }
 
         function createEnvironment() {
