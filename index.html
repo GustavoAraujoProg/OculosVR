@@ -1399,6 +1399,19 @@
     opacity: 0.8;
     transition: all 0.3s ease;
 }
+/* VISIBILIDADE GARANTIDA NO QUEST 2 */
+body.vr-quest-mode .crosshair-pointer {
+    display: block !important;
+    opacity: 1 !important;
+    z-index: 20000 !important;
+}
+
+/* GARANTIR VISIBILIDADE NO VR QUEST 2 */
+.vr-mode .crosshair-pointer {
+    z-index: 20000 !important;
+    opacity: 1 !important;
+    display: block !important;
+}
 
 .crosshair-arrow {
     width: 100%;
@@ -2240,63 +2253,86 @@
             }
             
            async enterQuestMode() {
-                console.log("🥽 Entrando no modo Oculus Quest 2...");
-            
-             this.hideVRSelection();
-            
-             try {
-                // Verificar WebXR
-                if (!navigator.xr) {
-                    this.showNotification("❌ WebXR não suportado. Use o Oculus Browser no Quest 2.");
-                    return;
-                }
-                
-                // Verificar suporte VR
-                const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                if (!isVRSupported) {
-                    this.showNotification("❌ VR não suportado. Acesse pelo Oculus Browser no Quest 2.");
-                    return;
-                }
-                
-                console.log("✅ Quest 2 detectado! Iniciando WebXR...");
-                
-                // CONFIGURAR RENDERER PARA VR
-                window.renderer.xr.enabled = true;
-                window.renderer.setAnimationLoop(this.renderVR.bind(this));
-                
-                    // CRIAR SESSÃO VR
-                    const session = await navigator.xr.requestSession('immersive-vr', {
-                        requiredFeatures: ['local-floor'],
-                        optionalFeatures: ['hand-tracking', 'bounded-floor']
-                    });
-                    
-                    this.vrSession = session;
-                    this.currentMode = 'quest';
-                    this.isVRActive = true;
-                    
-                    // CONFIGURAR SESSÃO NO RENDERER
-                    await window.renderer.xr.setSession(session);
-                    
-                    // CONFIGURAR ESPAÇO DE REFERÊNCIA
-                    this.referenceSpace = await session.requestReferenceSpace('local-floor');
-                    
-                    // CONFIGURAR CONTROLES E GAZE
-                    this.setupQuestControllers(session);
-                    this.setupGazeInteraction();
-                    
-                    // ENTRAR EM TELA CHEIA AUTOMÁTICA
-                    document.body.requestFullscreen?.();
-                    
-                    console.log("🥽 VR ATIVO - Movimento de cabeça e gaze funcionando!");
-                    this.showNotification("🥽 VR Ativo! Olhe para hotspots por 2s para navegar");
-                    
-                } catch (error) {
-                    console.error("❌ Erro WebXR:", error);
-                    this.showNotification("❌ Erro ao conectar Quest 2. Tente novamente.");
-                    this.exitVR();
-                }
-                }
+    console.log("🥽 Entrando no modo Oculus Quest 2...");
 
+    this.hideVRSelection();
+
+    try {
+        // Verificar WebXR
+        if (!navigator.xr) {
+            this.showNotification("❌ WebXR não suportado. Use o Oculus Browser no Quest 2.");
+            return;
+        }
+        
+        // Verificar suporte VR
+        const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
+        if (!isVRSupported) {
+            this.showNotification("❌ VR não suportado. Acesse pelo Oculus Browser no Quest 2.");
+            return;
+        }
+        
+        console.log("✅ Quest 2 detectado! Iniciando WebXR...");
+        
+        // CRIAR SESSÃO VR
+        const session = await navigator.xr.requestSession('immersive-vr', {
+            requiredFeatures: ['local-floor'],
+            optionalFeatures: ['hand-tracking', 'bounded-floor']
+        });
+        
+        this.vrSession = session;
+        this.currentMode = 'quest';
+        this.isVRActive = true;
+        
+        // ADICIONAR CLASSE PARA CSS
+        document.body.classList.add('vr-quest-mode');
+        
+        // CONFIGURAR RENDERER PARA VR
+        window.renderer.xr.enabled = true;
+        
+        // USAR LOOP DE ANIMAÇÃO NORMAL EM VEZ DE renderVR
+        window.renderer.setAnimationLoop(() => {
+            if (this.isVRActive && this.currentMode === 'quest') {
+                // ATUALIZAR MIRA DURANTE VR QUEST 2
+                if (window.crosshairSystem) {
+                    window.crosshairSystem.update();
+                }
+                
+                // DETECTAR GAZE NOS HOTSPOTS
+                this.updateGazeDetection();
+                
+                // RENDERIZAR AUTOMÁTICO PELO WebXR
+                window.renderer.render(window.scene, window.camera);
+            }
+        });
+        
+        // CONFIGURAR SESSÃO NO RENDERER
+        await window.renderer.xr.setSession(session);
+        
+        // CONFIGURAR ESPAÇO DE REFERÊNCIA
+        this.referenceSpace = await session.requestReferenceSpace('local-floor');
+        
+        // CONFIGURAR CONTROLES E GAZE
+        this.setupQuestControllers(session);
+        this.setupGazeInteraction();
+        
+        // ENTRAR EM TELA CHEIA AUTOMÁTICA
+        document.body.requestFullscreen?.();
+        
+        console.log("🥽 VR ATIVO - Movimento de cabeça e gaze funcionando!");
+        this.showNotification("🥽 VR Ativo! Olhe para hotspots por 2s para navegar");
+
+        // ATIVAR MIRA IMEDIATAMENTE
+        if (window.crosshairSystem) {
+            window.crosshairSystem.show();
+            console.log("🎯 Mira do Quest 2 ativada!");
+        }
+        
+    } catch (error) {
+        console.error("❌ Erro WebXR:", error);
+        this.showNotification("❌ Erro ao conectar Quest 2. Tente novamente.");
+        this.exitVR();
+    }
+}
 
                     renderVR() {
                 if (!this.isVRActive || this.currentMode !== 'quest') return;
@@ -2351,6 +2387,9 @@
 
             updateGazeDetection() {
                 if (!this.isVRActive || !window.hotspotSystem || !window.raycaster) return;
+                if (window.crosshairSystem && this.currentMode === 'quest') {
+                    window.crosshairSystem.update();
+                }
                 
                 // USAR CENTRO DA VISÃO (onde está olhando)
                 const direction = new THREE.Vector3(0, 0, -1);
@@ -2723,7 +2762,7 @@
                 }
             }
             
-            exitVR() {
+           exitVR() {
     console.log("🚪 Saindo do modo VR");
     
     // ENCERRAR SESSÃO WEBXR
@@ -2735,6 +2774,9 @@
     this.isVRActive = false;
     this.currentMode = null;
     this.clearGaze();
+    
+    // REMOVER CLASSE DO BODY
+    document.body.classList.remove('vr-quest-mode');
     
     // RESETAR RENDERER
     if (window.renderer) {
@@ -2766,11 +2808,27 @@
     this.showNotification("📱 VR Desativado");
 
     // ESCONDER MIRA AO SAIR DO VR
-if (window.crosshairSystem) {
-    window.crosshairSystem.setVRMode(false);
-    window.crosshairSystem.hide();
-    console.log("🎯 Mira desativada");
+    if (window.crosshairSystem) {
+        window.crosshairSystem.hide();
+        console.log("🎯 Mira desativada");
+    }
 }
+
+renderVR() {
+    if (!this.isVRActive || this.currentMode !== 'quest') return;
+    
+    // RENDERIZAÇÃO AUTOMÁTICA PELO WebXR
+    window.renderer.render(window.scene, window.camera);
+    
+    // ATIVAR MIRA NO QUEST 2
+    if (window.crosshairSystem) {
+        window.crosshairSystem.show();
+        window.crosshairSystem.update();
+        console.log("🎯 Mira ativada para Quest 2");
+    }
+    
+    // DETECTAR GAZE NOS HOTSPOTS
+    this.updateGazeDetection();
 }
             
             showNotification(message) {
@@ -2834,11 +2892,11 @@ if (window.crosshairSystem) {
         }
     }
     
-    update() {
-        // SÓ FUNCIONAR NO QUEST 2 VR
-        if (!this.isActive || !window.camera || !window.hotspotSystem) return;
-        if (!window.vrSystem || window.vrSystem.currentMode !== 'quest') return;
-        
+  update() {
+    // SÓ FUNCIONAR NO QUEST 2 VR E QUANDO ATIVO
+    if (!this.isActive || !window.camera || !window.hotspotSystem) return;
+    if (!window.vrSystem || !window.vrSystem.isVRActive || window.vrSystem.currentMode !== 'quest') return;
+
         // RAYCASTING DO CENTRO DA TELA
         this.raycaster.setFromCamera(this.centerPoint, window.camera);
         
@@ -2931,16 +2989,17 @@ if (window.crosshairSystem) {
         if (this.progressBar) this.progressBar.style.width = '0%';
     }
     
-    // ESCONDER DURANTE VR
-    setVRMode(isVR) {
-        if (isVR) {
-            this.hide();
-        } else {
-            this.show();
-        }
+setVRMode(isVR) {
+    // MOSTRAR MIRA APENAS NO QUEST 2
+    if (isVR && window.vrSystem && window.vrSystem.currentMode === 'quest') {
+        this.show();
+        console.log("🎯 Mira ativada para Quest 2");
+    } else if (!isVR) {
+        this.hide();
+        console.log("🎯 Mira desativada");
     }
 }
-
+}
         // ============= TESTE DIRETO DO VR (ADICIONAR APÓS INICIALIZAÇÃO) =============
         function forceVRButtonWork() {
             console.log("🔧 FORÇANDO FUNCIONAMENTO DO BOTÃO VR...");
@@ -3224,6 +3283,7 @@ if (window.crosshairSystem) {
             
             hotspotSystem = new InteractiveHotspotSystem(scene, camera, renderer);
             crosshairSystem = new CrosshairNavigationSystem();
+            window.crosshairSystem = crosshairSystem;
             vrSystem = new AdvancedVRSystem();
             vrSystem.init();
 
@@ -3592,8 +3652,8 @@ if (window.crosshairSystem) {
                     hotspotSystem.animate();
                 }
 
-                if (crosshairSystem) {
-                 crosshairSystem.update();
+               if (crosshairSystem && vrSystem && vrSystem.isVRActive && vrSystem.currentMode === 'quest') {
+    crosshairSystem.update();
 }
 
                 // Renderizar apenas se não estiver em modo VR estereoscópico
